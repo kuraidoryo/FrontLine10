@@ -1,0 +1,50 @@
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.grid-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.grid {
+    height: 550px;
+    width: 550px;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    outline: 1px solid black;
+    box-sizing: border-box;
+}
+
+.grid-cell {
+    border: 1px solid black;
+    box-sizing: border-box;
+}
+
+.grid .grid-cell:nth-child(-n+10) {
+    background-image: url('piecesImages/circleRed.png');
+    background-size: 40px 40px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.grid .grid-cell:nth-child(n+91) {
+    background-image: url('piecesImages/circleBlue.png');
+    background-size: 40px 40px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.player-pieces-container {
+    height: 550px;
+    width: 550px;
+    position: absolute;
+    pointer-events: none;
+}
