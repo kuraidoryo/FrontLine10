@@ -116,3 +116,30 @@ body {
 #done-button:hover:not(:disabled) {
     background-color: #45a049;
 }
+
+#instruction-text {
+    font-family: sans-serif;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #333;
+}
+
+.flag-icon-style {
+    background-image: url('flagImages/flagBlue.png') !important;
+    background-color: transparent !important;
+    border-radius: 0 !important;
+    background-size: 33px 45px !important;
+    background-repeat: no-repeat !important;
+    image-rendering: pixelated;
+}
+
+.player-flag-placed {
+    background-image: url('flagImages/flagBlue.png');
+    background-color: transparent; 
+    background-size: 33px 45px;
+    background-repeat: no-repeat;
+    background-position: center;
+    image-rendering: pixelated;
+}
