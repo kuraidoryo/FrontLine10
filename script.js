@@ -5,14 +5,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPieceIcon = document.getElementById('current-piece-icon');
     const piecesCounterDisplay = document.getElementById('pieces-counter');
     const doneButton = document.getElementById('done-button');
+    const turnScreen = document.getElementById('turn-screen');
     
-    let hasFlag = false;
-    let pawnsLeft = 10;
-    let isSetupPhase = true; 
+    let hasFlag = false; 
+    let pawnsLeft = 10;  
+    let isSetupPhase = false;
+
+    function showTurnScreen(text, callback) {
+        turnScreen.textContent = text;
+        turnScreen.style.display = 'flex';
+        
+        setTimeout(() => {
+            turnScreen.style.display = 'none';
+            if (callback) callback();
+        }, 2000);
+    }
+
+    showTurnScreen("Player 1 Turn", () => {
+        isSetupPhase = true;
+    });
 
     function updateSidebarUI() {
         if (!hasFlag) {
-            instructionText.textContent = "Place the flag!";
+            instructionText.textContent = "Place a flag!";
             currentPieceIcon.classList.add('flag-icon-style');
             piecesCounterDisplay.textContent = "1";
             doneButton.disabled = true;
@@ -36,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.addEventListener('click', function() {
             if (!isSetupPhase) return;
 
+            // Zdejmowanie flagi
             if (this.classList.contains('player-flag-placed')) {
                 this.classList.remove('player-flag-placed');
                 hasFlag = false;
@@ -43,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Zdejmowanie pionka
             if (this.classList.contains('player-placed')) {
                 this.classList.remove('player-placed');
                 pawnsLeft++;
@@ -50,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Stawianie elementów
             if (!hasFlag) {
                 if (i >= 90 && i <= 99) {
                     this.classList.add('player-flag-placed');
@@ -69,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     doneButton.addEventListener('click', () => {
-        isSetupPhase = false; 
         doneButton.disabled = true; 
         doneButton.textContent = "READY"; 
         doneButton.style.backgroundColor = "#2e7d32";
@@ -79,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let playerPawnsPositions = []; 
 
         for (let i = 80; i < 100; i++) {
-            cells[i].classList.remove('placement-zone');
+            cells[i].classList.remove('placement-zone'); 
             
             if (cells[i].classList.contains('player-flag-placed')) {
                 flagPosition = i;
@@ -88,7 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        console.log("Pozycja flagi:", flagPosition);
-        console.log("Pozycje pionków:", playerPawnsPositions);
+        console.log("Player 1 - Flag position:", flagPosition);
+        console.log("Player 1 - Pawn positions:", playerPawnsPositions);
+
+        showTurnScreen("Player 2 Turn", () => {
+            console.log("Player 2 setup phase begins.");
+        });
     });
 });

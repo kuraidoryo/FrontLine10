@@ -143,3 +143,21 @@ body {
     background-position: center;
     image-rendering: pixelated;
 }
+
+#turn-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: black;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 50px;
+    font-family: sans-serif;
+    font-weight: bold;
+    z-index: 9999;
+    display: none;
+}
