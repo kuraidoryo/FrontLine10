@@ -23,7 +23,7 @@ body {
     width: 50px;
     height: 50px;
     background-image: url('piecesImages/circleBlue.png');
-    background-color: #0d92f4;
+    background-color: transparent;
     border-radius: 50%;
     background-size: cover;
     background-position: center;
@@ -65,18 +65,13 @@ body {
     box-sizing: border-box;
 }
 
-.grid .grid-cell:nth-child(-n+10) {
-    background-image: url('piecesImages/circleRed.png');
-    background-size: 40px 40px;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
 .player-placed {
     background-image: url('piecesImages/circleBlue.png');
+    background-color: transparent;
     background-size: 40px 40px;
     background-repeat: no-repeat;
     background-position: center;
+    image-rendering: pixelated;
 }
 
 .placement-zone {
@@ -88,7 +83,8 @@ body {
     background-color: rgba(0, 0, 255, 0.2);
 }
 
-.player-pieces-container, .opponent-pieces-container {
+.player-pieces-container,
+.opponent-pieces-container {
     height: 550px;
     width: 550px;
     position: absolute;
@@ -137,8 +133,26 @@ body {
 
 .player-flag-placed {
     background-image: url('flagImages/flagBlue.png');
-    background-color: transparent; 
+    background-color: transparent;
     background-size: 33px 45px;
+    background-repeat: no-repeat;
+    background-position: center;
+    image-rendering: pixelated;
+}
+
+.player2-flag-placed {
+    background-image: url(flagImages/flagRed.png);
+    background-color: transparent;
+    background-size: 33px 45px;
+    background-repeat: no-repeat;
+    background-position: center;
+    image-rendering: pixelated;
+}
+
+.player2-placed {
+    background-image: url('piecesImages/circleRed.png');
+    background-color: transparent;
+    background-size: 40px 40px;
     background-repeat: no-repeat;
     background-position: center;
     image-rendering: pixelated;
@@ -160,4 +174,35 @@ body {
     font-weight: bold;
     z-index: 9999;
     display: none;
+}
+
+.placement-zone-p1 {
+    background-color: rgba(0, 0, 255, 0.1);
+    cursor: pointer;
+}
+
+.placement-zone-p1:hover {
+    background-color: rgba(0, 0, 255, 0.2);
+}
+
+.placement-zone-p2 {
+    background-color: rgba(255, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+.placement-zone-p2:hover {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+.player2-piece-icon-style {
+    background-image: url('piecesImages/circleRed.png') !important;
+    background-color: transparent !important;
+}
+
+.flag2-icon-style {
+    background-image: url('flagImages/flagRed.png') !important;
+    background-color: transparent !important;
+    border-radius: 0 !important;
+    background-size: 33px 45px !important;
+    background-repeat: no-repeat !important;
+    image-rendering: pixelated;
 }

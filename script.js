@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const doneButton = document.getElementById('done-button');
     const turnScreen = document.getElementById('turn-screen');
     
+    let currentPlayer = 1;
     let hasFlag = false; 
     let pawnsLeft = 10;  
     let isSetupPhase = false;
@@ -23,17 +24,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     showTurnScreen("Player 1 Turn", () => {
         isSetupPhase = true;
+        for (let i = 80; i < 100; i++) {
+            cells[i].classList.add('placement-zone-p1');
+        }
     });
 
     function updateSidebarUI() {
+        currentPieceIcon.className = 'player-piece-icon';
+
+        if (currentPlayer === 2) {
+            currentPieceIcon.classList.add('player2-piece-icon-style');
+        }
+
         if (!hasFlag) {
             instructionText.textContent = "Place a flag!";
-            currentPieceIcon.classList.add('flag-icon-style');
+            if (currentPlayer === 1) {
+                currentPieceIcon.classList.add('flag-icon-style');
+            } else {
+                currentPieceIcon.classList.add('flag2-icon-style');
+            }
             piecesCounterDisplay.textContent = "1";
             doneButton.disabled = true;
         } else {
             instructionText.textContent = "Place pawns!";
-            currentPieceIcon.classList.remove('flag-icon-style');
             piecesCounterDisplay.textContent = pawnsLeft;
             
             if (pawnsLeft === 0) {
@@ -44,72 +57,108 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    for (let i = 80; i < 100; i++) {
-        const cell = cells[i];
-        cell.classList.add('placement-zone');
-
+    cells.forEach((cell, i) => {
         cell.addEventListener('click', function() {
             if (!isSetupPhase) return;
 
-            // Zdejmowanie flagi
-            if (this.classList.contains('player-flag-placed')) {
-                this.classList.remove('player-flag-placed');
+            const isP1Zone = i >= 80 && i <= 99;
+            const isP2Zone = i >= 0 && i <= 19;
+
+            if (currentPlayer === 1 && !isP1Zone) return;
+            if (currentPlayer === 2 && !isP2Zone) return;
+
+            const flagClass = currentPlayer === 1 ? 'player-flag-placed' : 'player2-flag-placed';
+            const pawnClass = currentPlayer === 1 ? 'player-placed' : 'player2-placed';
+
+            if (this.classList.contains(flagClass)) {
+                this.classList.remove(flagClass);
                 hasFlag = false;
                 updateSidebarUI();
                 return;
             }
 
-            // Zdejmowanie pionka
-            if (this.classList.contains('player-placed')) {
-                this.classList.remove('player-placed');
+            if (this.classList.contains(pawnClass)) {
+                this.classList.remove(pawnClass);
                 pawnsLeft++;
                 updateSidebarUI();
                 return;
             }
 
-            // Stawianie elementów
             if (!hasFlag) {
-                if (i >= 90 && i <= 99) {
-                    this.classList.add('player-flag-placed');
+                const isValidFlagP1 = currentPlayer === 1 && i >= 90 && i <= 99;
+                const isValidFlagP2 = currentPlayer === 2 && i >= 0 && i <= 9;
+
+                if (isValidFlagP1 || isValidFlagP2) {
+                    this.classList.add(flagClass);
                     hasFlag = true;
                     updateSidebarUI();
                 } else {
-                    alert("You can place a flag only in your first row (at the very bottom)!");
+                    alert("You can place a flag only in your first row!");
                 }
             } else {
                 if (pawnsLeft > 0) {
-                    this.classList.add('player-placed');
+                    this.classList.add(pawnClass);
                     pawnsLeft--;
                     updateSidebarUI();
                 }
             }
         });
-    }
+    });
 
     doneButton.addEventListener('click', () => {
         doneButton.disabled = true; 
-        doneButton.textContent = "READY"; 
-        doneButton.style.backgroundColor = "#2e7d32";
-        instructionText.textContent = "Waiting...";
 
         let flagPosition = null;
         let playerPawnsPositions = []; 
 
-        for (let i = 80; i < 100; i++) {
-            cells[i].classList.remove('placement-zone'); 
-            
-            if (cells[i].classList.contains('player-flag-placed')) {
-                flagPosition = i;
-            } else if (cells[i].classList.contains('player-placed')) {
-                playerPawnsPositions.push(i);
+        if (currentPlayer === 1) {
+            for (let i = 80; i < 100; i++) {
+                cells[i].classList.remove('placement-zone-p1'); 
+                
+                if (cells[i].classList.contains('player-flag-placed')) {
+                    flagPosition = i;
+                } else if (cells[i].classList.contains('player-placed')) {
+                    playerPawnsPositions.push(i);
+                }
             }
+
+            console.log("Player 1 - Flag position:", flagPosition);
+            console.log("Player 1 - Pawn positions:", playerPawnsPositions);
+
+            currentPlayer = 2;
+            hasFlag = false;
+            pawnsLeft = 10;
+            isSetupPhase = false;
+
+            showTurnScreen("Player 2 Turn", () => {
+                doneButton.textContent = "DONE"; 
+                doneButton.style.backgroundColor = "#4CAF50";
+                updateSidebarUI();
+                
+                for (let i = 0; i < 20; i++) {
+                    cells[i].classList.add('placement-zone-p2');
+                }
+                
+                isSetupPhase = true;
+            });
+            
+        } else {
+            for (let i = 0; i < 20; i++) {
+                cells[i].classList.remove('placement-zone-p2'); 
+                
+                if (cells[i].classList.contains('player2-flag-placed')) {
+                    flagPosition = i;
+                } else if (cells[i].classList.contains('player2-placed')) {
+                    playerPawnsPositions.push(i);
+                }
+            }
+
+            console.log("Player 2 - Flag position:", flagPosition);
+            console.log("Player 2 - Pawn positions:", playerPawnsPositions);
+
+            isSetupPhase = false;
+
+            document.querySelector('.sidebar').style.display = 'none';
         }
-
-        console.log("Player 1 - Flag position:", flagPosition);
-        console.log("Player 1 - Pawn positions:", playerPawnsPositions);
-
-        showTurnScreen("Player 2 Turn", () => {
-            console.log("Player 2 setup phase begins.");
-        });
     });
 });
