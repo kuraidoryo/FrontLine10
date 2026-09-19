@@ -2,6 +2,43 @@ body {
     margin: 0;
     min-height: 100vh;
     display: flex;
+    flex-direction: row;
+}
+
+.sidebar {
+    width: 150px;
+    background-color: #f4f4f4;
+    border-right: 2px solid #333;
+    border-bottom: 2px solid #333;
+    border-top: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    align-self: center;
+}
+
+.player-piece-icon {
+    width: 50px;
+    height: 50px;
+    background-image: url('piecesImages/circleBlue.png');
+    background-color: #0d92f4;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+}
+
+#pieces-counter {
+    margin-top: 15px;
+    font-size: 32px;
+    font-weight: bold;
+    font-family: sans-serif;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
     flex-direction: column;
 }
 
@@ -35,16 +72,47 @@ body {
     background-position: center;
 }
 
-.grid .grid-cell:nth-child(n+91) {
+.player-placed {
     background-image: url('piecesImages/circleBlue.png');
     background-size: 40px 40px;
     background-repeat: no-repeat;
     background-position: center;
 }
 
-.player-pieces-container {
+.placement-zone {
+    background-color: rgba(0, 0, 255, 0.1);
+    cursor: pointer;
+}
+
+.placement-zone:hover {
+    background-color: rgba(0, 0, 255, 0.2);
+}
+
+.player-pieces-container, .opponent-pieces-container {
     height: 550px;
     width: 550px;
     position: absolute;
     pointer-events: none;
+}
+
+#done-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+#done-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#done-button:hover:not(:disabled) {
+    background-color: #45a049;
 }
