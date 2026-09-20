@@ -15,4 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-1v1').addEventListener('click', () => {
         window.location.href = 'localGame/index.html';
     });
+
+    document.getElementById('btn-computer').addEventListener('click', () => {
+        window.location.href = 'localGame/index.html?mode=ai';
+    });
 });
