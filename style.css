@@ -63,6 +63,13 @@ body {
 .grid-cell {
     border: 1px solid black;
     box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 22px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 3px black;
 }
 
 .player-placed {
@@ -205,4 +212,35 @@ body {
     background-size: 33px 45px !important;
     background-repeat: no-repeat !important;
     image-rendering: pixelated;
+}
+
+#value-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    margin-top: 15px;
+    padding: 0 10px;
+}
+
+.value-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #333;
+    background-color: white;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 5px;
+}
+
+.value-btn.selected {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.hidden-value {
+    color: transparent !important;
+    text-shadow: none !important;
+    user-select: none;
+    font-size: 0 !important;
 }
