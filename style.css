@@ -200,6 +200,7 @@ body {
 .placement-zone-p2:hover {
     background-color: rgba(255, 0, 0, 0.2);
 }
+
 .player2-piece-icon-style {
     background-image: url('piecesImages/circleRed.png') !important;
     background-color: transparent !important;
@@ -243,4 +244,36 @@ body {
     text-shadow: none !important;
     user-select: none;
     font-size: 0 !important;
+}
+
+.selected-piece {
+    outline: 4px solid #ffeb3b !important;
+    outline-offset: -4px;
+}
+
+.valid-move-target {
+    background-color: rgba(76, 175, 80, 0.4) !important;
+    cursor: pointer;
+}
+
+.valid-move-target:hover {
+    background-color: rgba(76, 175, 80, 0.6) !important;
+}
+
+#game-status {
+    display: none;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 50px;
+    font-family: sans-serif;
+}
+
+#timer-display {
+    display: none;
+    font-size: 30px;
+    font-weight: bold;
+    color: #333;
+    font-family: sans-serif;
+    text-align: center;
 }
