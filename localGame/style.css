@@ -22,7 +22,7 @@ body {
 .player-piece-icon {
     width: 50px;
     height: 50px;
-    background-image: url('piecesImages/circleBlue.png');
+    background-image: url('../piecesImages/circleBlue.png');
     background-color: transparent;
     border-radius: 50%;
     background-size: cover;
@@ -73,7 +73,7 @@ body {
 }
 
 .player-placed {
-    background-image: url('piecesImages/circleBlue.png');
+    background-image: url('../piecesImages/circleBlue.png');
     background-color: transparent;
     background-size: 40px 40px;
     background-repeat: no-repeat;
@@ -130,7 +130,7 @@ body {
 }
 
 .flag-icon-style {
-    background-image: url('flagImages/flagBlue.png') !important;
+    background-image: url('../flagImages/flagBlue.png') !important;
     background-color: transparent !important;
     border-radius: 0 !important;
     background-size: 33px 45px !important;
@@ -139,7 +139,7 @@ body {
 }
 
 .player-flag-placed {
-    background-image: url('flagImages/flagBlue.png');
+    background-image: url('../flagImages/flagBlue.png');
     background-color: transparent;
     background-size: 33px 45px;
     background-repeat: no-repeat;
@@ -148,7 +148,7 @@ body {
 }
 
 .player2-flag-placed {
-    background-image: url(flagImages/flagRed.png);
+    background-image: url('../flagImages/flagRed.png');
     background-color: transparent;
     background-size: 33px 45px;
     background-repeat: no-repeat;
@@ -157,7 +157,7 @@ body {
 }
 
 .player2-placed {
-    background-image: url('piecesImages/circleRed.png');
+    background-image: url('../piecesImages/circleRed.png');
     background-color: transparent;
     background-size: 40px 40px;
     background-repeat: no-repeat;
@@ -202,12 +202,12 @@ body {
 }
 
 .player2-piece-icon-style {
-    background-image: url('piecesImages/circleRed.png') !important;
+    background-image: url('../piecesImages/circleRed.png') !important;
     background-color: transparent !important;
 }
 
 .flag2-icon-style {
-    background-image: url('flagImages/flagRed.png') !important;
+    background-image: url('../flagImages/flagRed.png') !important;
     background-color: transparent !important;
     border-radius: 0 !important;
     background-size: 33px 45px !important;
