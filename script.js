@@ -17,11 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedValue = null;
 
     let isGamePhase = false;
+    let isGameOver = false;
     let gameTimer = null;
     let timeLeft = 5;
     let p1Move = null;
     let p2Move = null;
     let activePieceIndex = null;
+
+    const LOWER_BEATS_HIGHER = true;
 
     function showTurnScreen(text, callback) {
         turnScreen.textContent = text;
@@ -33,14 +36,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 
-    // showTurnScreen("Player 1 Turn", () => {
-    //     isSetupPhase = true;
-    //     for (let i = 80; i < 100; i++) {
-    //         cells[i].classList.add('placement-zone-p1');
-    //     }
-    // });
+    showTurnScreen("Player 1 Turn", () => {
+        isSetupPhase = true;
+        for (let i = 80; i < 100; i++) {
+            cells[i].classList.add('placement-zone-p1');
+        }
+    });
 
-    quickDebugSetup();
+    // quickDebugSetup();
 
     function updateSidebarUI() {
         currentPieceIcon.className = 'player-piece-icon';
@@ -159,6 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startPreMoveTurn(player) {
+        if (isGameOver) return;
+
         currentPlayer = player;
         activePieceIndex = null;
         clearHighlights();
@@ -189,6 +194,111 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function getPieceData(index) {
+        const cell = cells[index];
+
+        if (cell.classList.contains('player-flag-placed')) {
+            return { player: 1, type: 'flag', value: null };
+        }
+        if (cell.classList.contains('player2-flag-placed')) {
+            return { player: 2, type: 'flag', value: null };
+        }
+        if (cell.classList.contains('player-placed')) {
+            return { player: 1, type: 'pawn', value: parseInt(cell.dataset.value) };
+        }
+        if (cell.classList.contains('player2-placed')) {
+            return { player: 2, type: 'pawn', value: parseInt(cell.dataset.value) };
+        }
+
+        return null;
+    }
+
+    function removePiece(index) {
+        const cell = cells[index];
+
+        cell.classList.remove(
+            'player-placed',
+            'player2-placed',
+            'player-flag-placed',
+            'player2-flag-placed',
+            'hidden-value',
+            'selected-piece',
+            'valid-move-target'
+        );
+
+        delete cell.dataset.value;
+        cell.textContent = '';
+    }
+
+    function placePiece(index, player, value, revealed = false) {
+        const cell = cells[index];
+
+        removePiece(index);
+
+        const ownClass = player === 1 ? 'player-placed' : 'player2-placed';
+        cell.classList.add(ownClass);
+        cell.dataset.value = value;
+
+        if (revealed) {
+            cell.classList.remove('hidden-value');
+            cell.textContent = value;
+        } else {
+            cell.classList.add('hidden-value');
+            cell.textContent = '';
+        }
+    }
+
+    function revealPiece(index) {
+        const cell = cells[index];
+
+        if (cell.dataset.value) {
+            cell.classList.remove('hidden-value');
+            cell.textContent = cell.dataset.value;
+        }
+    }
+
+    function compareValues(a, b) {
+        if (a === b) return 0;
+
+        if (LOWER_BEATS_HIGHER) {
+            if (a === 1 && b === 10) return 1;
+            if (a === 10 && b === 1) return -1;
+        }
+
+        return a > b ? 1 : -1;
+    }
+
+    function logCombat(a, b, result) {
+        let text = '';
+
+        if (result > 0) {
+            text = `P${a.player}(${a.value}) wins over P${b.player}(${b.value})`;
+        } else if (result < 0) {
+            text = `P${b.player}(${b.value}) wins over P${a.player}(${a.value})`;
+        } else {
+            text = `Tie: P${a.player}(${a.value}) vs P${b.player}(${b.value})`;
+        }
+
+        document.getElementById('game-status').textContent = text;
+    }
+
+    function showGameOver(winner, reason = '') {
+        isGameOver = true;
+        isGamePhase = false;
+        clearInterval(gameTimer);
+        clearHighlights();
+
+        if (winner) {
+            turnScreen.textContent = `Player ${winner} Wins!`;
+            document.getElementById('game-status').textContent = `Player ${winner} wins! ${reason}`;
+        } else {
+            turnScreen.textContent = `Draw!`;
+            document.getElementById('game-status').textContent = `Draw! ${reason}`;
+        }
+
+        turnScreen.style.display = 'flex';
+    }
+
     function resolveTurn() {
         clearHighlights();
 
@@ -197,33 +307,151 @@ document.addEventListener('DOMContentLoaded', () => {
             let p2Data = null;
 
             if (p1Move) {
-                const cell = cells[p1Move.from];
-                p1Data = { value: cell.dataset.value, to: p1Move.to };
-                cell.classList.remove('player-placed', 'hidden-value');
-                delete cell.dataset.value;
+                const d = getPieceData(p1Move.from);
+                if (d && d.type === 'pawn') {
+                    p1Data = {
+                        player: 1,
+                        value: d.value,
+                        from: p1Move.from,
+                        to: p1Move.to
+                    };
+                }
             }
+
             if (p2Move) {
-                const cell = cells[p2Move.from];
-                p2Data = { value: cell.dataset.value, to: p2Move.to };
-                cell.classList.remove('player2-placed', 'hidden-value');
-                delete cell.dataset.value;
+                const d = getPieceData(p2Move.from);
+                if (d && d.type === 'pawn') {
+                    p2Data = {
+                        player: 2,
+                        value: d.value,
+                        from: p2Move.from,
+                        to: p2Move.to
+                    };
+                }
+            }
+
+            if (p1Data && p2Data) {
+                const t1 = getPieceData(p1Data.to);
+                const t2 = getPieceData(p2Data.to);
+
+                if (t1 && t2 && t1.type === 'flag' && t2.type === 'flag') {
+                    removePiece(p1Data.to);
+                    removePiece(p2Data.to);
+                    showGameOver(null, "Both players captured each other's flags simultaneously!");
+                    p1Move = null;
+                    p2Move = null;
+                    return;
+                }
+            }
+
+            if (p1Data) removePiece(p1Data.from);
+            if (p2Data) removePiece(p2Data.from);
+
+            if (
+                p1Data && p2Data &&
+                p1Data.to === p2Data.from &&
+                p2Data.to === p1Data.from
+            ) {
+                const result = compareValues(p1Data.value, p2Data.value);
+                logCombat(p1Data, p2Data, result);
+
+                if (result > 0) {
+                    placePiece(p1Data.to, 1, p1Data.value, true);
+                } else if (result < 0) {
+                    placePiece(p2Data.to, 2, p2Data.value, true);
+                }
+
+                p1Move = null;
+                p2Move = null;
+                finishTurn();
+                return;
             }
 
             if (p1Data && p2Data && p1Data.to === p2Data.to) {
-                // Handle collision, now P1 wins
-                placePiece(p1Data.to, 1, p1Data.value);
-            } else {
-                if (p1Data) placePiece(p1Data.to, 1, p1Data.value);
-                if (p2Data) placePiece(p2Data.to, 2, p2Data.value);
+                const dest = p1Data.to;
+                const result = compareValues(p1Data.value, p2Data.value);
+                logCombat(p1Data, p2Data, result);
+
+                if (result > 0) {
+                    placePiece(dest, 1, p1Data.value, true);
+                } else if (result < 0) {
+                    placePiece(dest, 2, p2Data.value, true);
+                } else {
+                    removePiece(dest);
+                }
+
+                p1Move = null;
+                p2Move = null;
+                finishTurn();
+                return;
+            }
+
+            let ended = false;
+
+            if (p1Data) {
+                ended = resolveSingleMove(p1Data);
+            }
+
+            if (!ended && p2Data) {
+                ended = resolveSingleMove(p2Data);
             }
 
             p1Move = null;
             p2Move = null;
 
-            setTimeout(() => {
-                startPreMoveTurn(1);
-            }, 3000);
+            if (!ended) {
+                finishTurn();
+            }
         });
+    }
+
+    function finishTurn() {
+        p1Move = null;
+        p2Move = null;
+
+        setTimeout(() => {
+            if (!isGameOver) {
+                startPreMoveTurn(1);
+            }
+        }, 3000);
+    }
+
+    function resolveSingleMove(move) {
+        const dest = move.to;
+        const occupant = getPieceData(dest);
+
+        if (!occupant) {
+            placePiece(dest, move.player, move.value, false);
+            return false;
+        }
+
+        if (occupant.player === move.player) {
+            placePiece(dest, move.player, move.value, false);
+            return false;
+        }
+
+        if (occupant.type === 'flag') {
+            removePiece(dest);
+            placePiece(dest, move.player, move.value, true);
+            showGameOver(move.player, "Captured the opponent's flag!");
+            return true;
+        }
+
+        if (occupant.type === 'pawn') {
+            const result = compareValues(move.value, occupant.value);
+            logCombat(move, { player: occupant.player, value: occupant.value }, result);
+
+            if (result > 0) {
+                removePiece(dest);
+                placePiece(dest, move.player, move.value, true);
+            } else if (result < 0) {
+                revealPiece(dest);
+            } else {
+                removePiece(dest);
+            }
+        }
+
+        return false;
     }
 
     function placePiece(index, player, value) {
@@ -262,6 +490,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cells.forEach((cell, i) => {
         cell.addEventListener('click', function () {
+            if (isGameOver) return;
+            
             if (isSetupPhase) {
                 const isP1Zone = i >= 80 && i <= 99;
                 const isP2Zone = i >= 0 && i <= 19;
