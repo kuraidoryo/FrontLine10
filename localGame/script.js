@@ -1047,4 +1047,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+    document.addEventListener('keydown', (e) => {
+        if (!isValuePhase) return;
+
+        let val = null;
+
+        if (e.key >= '1' && e.key <= '9') {
+            val = parseInt(e.key);
+        } else if (e.key === '0') {
+            val = 10;
+        }
+
+        if (val === null) return;
+
+        if (!availableValues.includes(val)) return;
+
+        selectedValue = val;
+        renderValueButtons();
+    });
 });
