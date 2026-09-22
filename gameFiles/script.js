@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const turnScreen = document.getElementById('turn-screen');
     const valueSelector = document.getElementById('value-selector');
 
+    const online = window.OnlineMode || null;
+
     const params = new URLSearchParams(window.location.search);
     const isVsComputer = params.get('mode') === 'ai';
     const AI_PLAYER = 2;
@@ -40,12 +42,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 
-    showTurnScreen("Player 1 Turn", () => {
-        isSetupPhase = true;
-        for (let i = 80; i < 100; i++) {
-            cells[i].classList.add('placement-zone-p1');
-        }
-    });
+    if (online && online.isGuest) {
+        currentPlayer = 2;
+        updateSidebarUI();
+        showTurnScreen("Player 2 Turn", () => {
+            isSetupPhase = true;
+            for (let i = 0; i < 20; i++) {
+                cells[i].classList.add('placement-zone-p2');
+            }
+        });
+    } else {
+        showTurnScreen("Player 1 Turn", () => {
+            isSetupPhase = true;
+            for (let i = 80; i < 100; i++) {
+                cells[i].classList.add('placement-zone-p1');
+            }
+        });
+    }
 
     // quickDebugSetup();
 
@@ -930,6 +943,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             else if (isGamePhase) {
+                if (online && currentPlayer !== online.myPlayer) return;
+                if (online && ((online.myPlayer === 1 && p1Move) || (online.myPlayer === 2 && p2Move))) return;
+
                 const pawnClass = currentPlayer === 1 ? 'player-placed' : 'player2-placed';
 
                 if (this.classList.contains(pawnClass)) {
@@ -945,6 +961,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 else if (this.classList.contains('valid-move-target') && activePieceIndex !== null) {
                     clearInterval(gameTimer);
+
+                    if (online) {
+                        const from = activePieceIndex;
+                        if (online.myPlayer === 1) {
+                            p1Move = { from: from, to: i };
+                        } else {
+                            p2Move = { from: from, to: i };
+                        }
+                        online.sendPick(from, i);
+                        clearHighlights();
+                        activePieceIndex = null;
+
+                        if (online.isHost) {
+                            // host = P1
+                            p1Move = { from: from, to: i };
+
+                            // powiadom gościa, że jego kolej (currentTurn: 2)
+                            online.broadcastState({
+                                board: buildCensoredState(),
+                                currentTurn: 2,
+                                status: 'playing',
+                                winner: null
+                            });
+
+                            currentPlayer = 2;
+                            document.getElementById('game-status').textContent = "Waiting for opponent...";
+
+                            if (p2Move) {
+                                resolveTurnOnline();
+                            }
+                        } else {
+                            // guest = P2 — wyślij pick hostowi i czekaj
+                            p2Move = { from: from, to: i };
+                            online.sendPick(from, i);
+                            currentPlayer = 1;
+                            document.getElementById('game-status').textContent = "Waiting for host...";
+                        }
+
+                        clearHighlights();
+                        activePieceIndex = null;
+                        return;
+                    }
+                    return;
 
                     if (currentPlayer === 1) {
                         p1Move = { from: activePieceIndex, to: i };
@@ -999,6 +1058,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Player 1 - Flag position:", flagPosition);
                 console.log("Player 1 - Pawns data:", playerPawnsPositions);
 
+                if (online) {
+                    const myPieces = [];
+                    for (let i = 80; i < 100; i++) {
+                        if (cells[i].classList.contains('player-flag-placed')) {
+                            myPieces.push({ i: i, type: 'flag' });
+                        } else if (cells[i].classList.contains('player-placed')) {
+                            myPieces.push({ i: i, type: 'pawn', value: parseInt(cells[i].dataset.value) });
+                        }
+                    }
+                    const censored = myPieces.map(p => p.type === 'flag' ? p : { i: p.i, type: 'pawn', value: null });
+                    online.sendSetup(censored);
+                    mySetupSent = true;
+
+                    document.getElementById('game-status').textContent = "Waiting for opponent setup...";
+                    return;
+                }
+
                 if (isVsComputer) {
                     setupAI();
                     showTurnScreen("Game Start!", () => {
@@ -1041,6 +1117,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Player 2 - Flag position:", flagPosition);
                 console.log("Player 2 - Pawns data:", playerPawnsPositions);
 
+                if (online) {
+                    const myPieces = [];
+                    for (let i = 0; i < 20; i++) {
+                        if (cells[i].classList.contains('player2-flag-placed')) {
+                            myPieces.push({ i: i, type: 'flag' });
+                        } else if (cells[i].classList.contains('player2-placed')) {
+                            myPieces.push({ i: i, type: 'pawn', value: parseInt(cells[i].dataset.value) });
+                        }
+                    }
+                    online.sendSetup(myPieces);
+                    mySetupSent = true;
+
+                    document.getElementById('game-status').textContent = "Waiting for host...";
+                    return;
+                }
+
                 showTurnScreen("Game Start!", () => {
                     initGamePhase();
                 });
@@ -1065,4 +1157,284 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedValue = val;
         renderValueButtons();
     });
+
+    // ============================================================
+    //  Online glue
+    // ============================================================
+
+    let pendingOpponentSetup = null;
+    let mySetupSent = false;
+
+    function startPreMoveTurnOnline(player) {
+        currentPlayer = player;
+        activePieceIndex = null;
+        clearHighlights();
+
+        document.getElementById('game-status').textContent = `Player ${player}'s Turn`;
+        document.getElementById('game-status').style.color = player === 1 ? '#0d92f4' : '#f95454';
+        document.getElementById('timer-display').textContent = '';
+    }
+
+    function resolveTurnOnline() {
+        // Both p1Move and p2Move are set. Run normal resolveTurn.
+        clearHighlights();
+        showTurnScreen("Resolving Turn...", () => {
+            // inline the resolution logic (same as resolveTurn body)
+            let p1Data = null, p2Data = null;
+            if (p1Move) {
+                const d = getPieceData(p1Move.from);
+                if (d && d.type === 'pawn') p1Data = { player: 1, value: d.value, from: p1Move.from, to: p1Move.to };
+            }
+            if (p2Move) {
+                const d = getPieceData(p2Move.from);
+                if (d && d.type === 'pawn') p2Data = { player: 2, value: d.value, from: p2Move.from, to: p2Move.to };
+            }
+
+            if (p1Data && p2Data) {
+                const t1 = getPieceData(p1Data.to);
+                const t2 = getPieceData(p2Data.to);
+                if (t1 && t2 && t1.type === 'flag' && t2.type === 'flag') {
+                    removePiece(p1Data.to);
+                    removePiece(p2Data.to);
+                    broadcastAndEnd(null, "Both flags captured");
+                    return;
+                }
+            }
+
+            if (p1Data) removePiece(p1Data.from);
+            if (p2Data) removePiece(p2Data.from);
+
+            if (p1Data && p2Data && p1Data.to === p2Data.from && p2Data.to === p1Data.from) {
+                const r = compareValues(p1Data.value, p2Data.value);
+                logCombat(p1Data, p2Data, r);
+                if (r > 0) placePiece(p1Data.to, 1, p1Data.value, true);
+                else if (r < 0) placePiece(p2Data.to, 2, p2Data.value, true);
+                broadcastAndContinue();
+                return;
+            }
+
+            if (p1Data && p2Data && p1Data.to === p2Data.to) {
+                const dest = p1Data.to;
+                const r = compareValues(p1Data.value, p2Data.value);
+                logCombat(p1Data, p2Data, r);
+                if (r > 0) placePiece(dest, 1, p1Data.value, true);
+                else if (r < 0) placePiece(dest, 2, p2Data.value, true);
+                else removePiece(dest);
+                broadcastAndContinue();
+                return;
+            }
+
+            let ended = false;
+            if (p1Data) ended = resolveSingleMove(p1Data);
+            if (!ended && p2Data) ended = resolveSingleMove(p2Data);
+
+            if (ended) {
+                broadcastAndEnd(ended === true ? null : ended, '');
+            } else {
+                broadcastAndContinue();
+            }
+        });
+    }
+
+    function buildCensoredState() {
+        const board = [];
+        for (let i = 0; i < 100; i++) {
+            const c = cells[i];
+            const hidden = c.classList.contains('hidden-value');
+            if (c.classList.contains('player-placed')) {
+                board.push({ player: 1, type: 'pawn', value: hidden ? null : parseInt(c.dataset.value) });
+            } else if (c.classList.contains('player2-placed')) {
+                board.push({ player: 2, type: 'pawn', value: hidden ? null : parseInt(c.dataset.value) });
+            } else if (c.classList.contains('player-flag-placed')) {
+                board.push({ player: 1, type: 'flag' });
+            } else if (c.classList.contains('player2-flag-placed')) {
+                board.push({ player: 2, type: 'flag' });
+            } else {
+                board.push(null);
+            }
+        }
+        return board;
+    }
+
+    function broadcastAndContinue() {
+        p1Move = null;
+        p2Move = null;
+
+        online.broadcastState({
+            board: buildCensoredState(),
+            currentTurn: 1,
+            status: 'playing',
+            winner: null
+        });
+
+        setTimeout(() => {
+            if (!isGameOver) {
+                startPreMoveTurnOnline(1);
+                online.sendTurn(1);
+            }
+        }, 2000);
+    }
+
+    function broadcastAndEnd(winner, reason) {
+        p1Move = null;
+        p2Move = null;
+        online.broadcastState({
+            board: buildCensoredState(),
+            currentTurn: 0,
+            status: 'gameover',
+            winner: winner,
+            reason: reason
+        });
+        showGameOver(winner, reason);
+    }
+
+    // ---- Apply received state on guest ----
+    function applyState(state) {
+        // 1. Wyczyść planszę
+        for (let i = 0; i < 100; i++) {
+            removePiece(i);
+        }
+
+        // 2. Postaw pionki z otrzymanego stanu
+        state.board.forEach((p, i) => {
+            if (!p) return;
+
+            if (p.type === 'flag') {
+                cells[i].classList.add(p.player === 1 ? 'player-flag-placed' : 'player2-flag-placed');
+                return;
+            }
+
+            // pionek
+            const cls = p.player === 1 ? 'player-placed' : 'player2-placed';
+            cells[i].classList.add(cls);
+
+            const hasKnownValue = (typeof p.value === 'number' && !isNaN(p.value));
+
+            if (hasKnownValue) {
+                cells[i].dataset.value = p.value;
+                cells[i].classList.remove('hidden-value');
+                cells[i].textContent = p.value;
+            } else {
+                // pionek ukryty (własny lub przeciwnika)
+                cells[i].classList.add('hidden-value');
+                cells[i].textContent = '';
+            }
+        });
+
+        // 3. Jeśli to pierwszy STATE — przełącz w fazę gry
+        if (!isGamePhase) {
+            isSetupPhase = false;
+            isValuePhase = false;
+            isGamePhase = true;
+
+            document.getElementById('instruction-text').style.display = 'none';
+            document.getElementById('current-piece-icon').style.display = 'none';
+            document.getElementById('pieces-counter').style.display = 'none';
+            document.getElementById('value-selector').style.display = 'none';
+            document.getElementById('done-button').style.display = 'none';
+            document.querySelector('.sidebar').style.display = 'flex';
+
+            document.getElementById('game-status').style.display = 'block';
+            document.getElementById('timer-display').style.display = 'block';
+        }
+
+        // 4. Koniec gry
+        if (state.status === 'gameover') {
+            showGameOver(state.winner, state.reason || '');
+            return;
+        }
+
+        // 5. Ustaw turę
+        currentPlayer = state.currentTurn;
+        startPreMoveTurnOnline(state.currentTurn);
+    }
+
+    // ---- Wire up online callbacks ----
+    if (online) {
+        online.onConnected = function () {
+            // lobby closed. Host already set up to P1 by default; guest was already set to P2 in initial screen.
+        };
+
+        online.onOpponentSetup = function (pieces) {
+            // Host receives guest's full setup (values included)
+            // Guest receives host's censored setup (values null)
+            pieces.forEach(p => {
+                if (p.type === 'flag') {
+                    cells[p.i].classList.add(online.isHost ? 'player2-flag-placed' : 'player-flag-placed');
+                } else {
+                    if (online.isHost) {
+                        cells[p.i].classList.add('player2-placed', 'hidden-value');
+                        cells[p.i].dataset.value = p.value;
+                    } else {
+                        cells[p.i].classList.add('player-placed', 'hidden-value');
+                        // value unknown; leave blank
+                        cells[p.i].dataset.value = '';
+                    }
+                }
+            });
+
+            mySetupSent = mySetupSent || false;
+            // When BOTH setups are done:
+            // - Host: has own setup + guest's setup → can start
+            // - Guest: has own setup + host's setup → wait for host state
+            if (online.isHost) {
+                showTurnScreen("Game Start!", () => {
+                    initGamePhaseOnline();
+                });
+            } else {
+                document.getElementById('game-status').textContent = "Waiting for host...";
+            }
+        };
+
+        online.onOpponentPick = function (pick) {
+            if (!online.isHost) return;
+            if (online.opponentPlayer === 2) {
+                p2Move = { from: pick.from, to: pick.to };
+            } else {
+                p1Move = { from: pick.from, to: pick.to };
+            }
+            if (p1Move && p2Move) {
+                resolveTurnOnline();
+            }
+        };
+
+        online.onStateUpdate = function (state) {
+            if (online.isHost) return; // host is authority
+            applyState(state);
+        };
+
+        online.onOpponentDisconnect = function () {
+            alert('Opponent disconnected');
+        };
+
+        online.onTurn = function (player) {
+            currentPlayer = player;
+            startPreMoveTurnOnline(player);
+        };
+    }
+
+    function initGamePhaseOnline() {
+        isSetupPhase = false;
+        isValuePhase = false;
+        isGamePhase = true;
+
+        document.getElementById('instruction-text').style.display = 'none';
+        document.getElementById('current-piece-icon').style.display = 'none';
+        document.getElementById('pieces-counter').style.display = 'none';
+        document.getElementById('value-selector').style.display = 'none';
+        document.getElementById('done-button').style.display = 'none';
+        document.querySelector('.sidebar').style.display = 'flex';
+
+        document.getElementById('game-status').style.display = 'block';
+        document.getElementById('timer-display').style.display = 'block';
+
+        online.broadcastState({
+            board: buildCensoredState(),
+            currentTurn: 1,
+            status: 'playing',
+            winner: null
+        });
+
+        startPreMoveTurnOnline(1);
+    }
 });

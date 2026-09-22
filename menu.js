@@ -13,10 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-1v1').addEventListener('click', () => {
-        window.location.href = 'localGame/index.html';
+        window.location.href = 'gameFiles/index.html';
     });
 
     document.getElementById('btn-computer').addEventListener('click', () => {
-        window.location.href = 'localGame/index.html?mode=ai';
+        window.location.href = 'gameFiles/index.html?mode=ai';
+    });
+    document.getElementById('btn-online').addEventListener('click', () => {
+        const choice = prompt('Type "host" to create a game, or "join" to join:');
+        if (choice === 'host') window.location.href = 'gameFiles/index.html?online=host';
+        else if (choice === 'join') window.location.href = 'gameFiles/index.html?online=join';
     });
 });
