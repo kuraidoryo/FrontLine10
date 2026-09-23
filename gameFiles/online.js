@@ -1,5 +1,3 @@
-// online.js - PeerJS networking layer for FrontLine10
-// Load this BEFORE script.js. Sets window.OnlineMode if URL has ?online=host or ?online=join.
 (function () {
     'use strict';
 
@@ -17,14 +15,13 @@
         peer: null,
         conn: null,
 
-        // ---- callbacks set by script.js ----
-        onConnected: null,       // () => void
-        onOpponentSetup: null,   // (pieces) => void
-        onOpponentPick: null,    // ({from, to}) => void
-        onStateUpdate: null,     // (state) => void
+        onConnected: null,
+        onOpponentSetup: null,
+        onOpponentPick: null,
+        onStateUpdate: null,
         onOpponentDisconnect: null,
+        onTurn: null,
 
-        // ---- methods called by script.js ----
         sendSetup: function (pieces) {
             send({ type: 'SETUP', pieces });
         },
@@ -60,7 +57,6 @@
 
     window.OnlineMode = OnlineMode;
 
-    // ---- Lobby UI + connection handling ----
     document.addEventListener('DOMContentLoaded', function () {
         const lobby = document.getElementById('online-lobby');
         const status = document.getElementById('lobby-status');

@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isGamePhase = false;
     let isGameOver = false;
     let gameTimer = null;
-    let timeLeft = 5;
+    let timeLeft = 10;
     let p1Move = null;
     let p2Move = null;
     let activePieceIndex = null;
@@ -181,6 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function startPreMoveTurn(player) {
         if (isGameOver) return;
 
+        clearInterval(gameTimer);
+        gameTimer = null;
+
         if (isVsComputer && player === AI_PLAYER) {
             currentPlayer = AI_PLAYER;
             activePieceIndex = null;
@@ -317,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showGameOver(winner, reason = '') {
+        if (isGameOver) return;
         isGameOver = true;
         isGamePhase = false;
         clearInterval(gameTimer);
@@ -420,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            let ended = false;
+            let ended = null;
 
             if (p1Data) {
                 ended = resolveSingleMove(p1Data);
@@ -456,19 +460,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!occupant) {
             placePiece(dest, move.player, move.value, false);
-            return false;
+            return null;
         }
 
         if (occupant.player === move.player) {
             placePiece(dest, move.player, move.value, false);
-            return false;
+            return null;
         }
 
         if (occupant.type === 'flag') {
             removePiece(dest);
             placePiece(dest, move.player, move.value, true);
             showGameOver(move.player, "Captured the opponent's flag!");
-            return true;
+            return move.player;
         }
 
         if (occupant.type === 'pawn') {
@@ -485,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        return false;
+        return null;
     }
 
     function quickDebugSetup() {
@@ -962,57 +966,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (this.classList.contains('valid-move-target') && activePieceIndex !== null) {
                     clearInterval(gameTimer);
 
-                    if (online) {
-                        const from = activePieceIndex;
-                        if (online.myPlayer === 1) {
-                            p1Move = { from: from, to: i };
-                        } else {
-                            p2Move = { from: from, to: i };
-                        }
-                        online.sendPick(from, i);
-                        clearHighlights();
-                        activePieceIndex = null;
-
-                        if (online.isHost) {
-                            // host = P1
-                            p1Move = { from: from, to: i };
-
-                            // powiadom gościa, że jego kolej (currentTurn: 2)
-                            online.broadcastState({
-                                board: buildCensoredState(),
-                                currentTurn: 2,
-                                status: 'playing',
-                                winner: null
-                            });
-
-                            currentPlayer = 2;
-                            document.getElementById('game-status').textContent = "Waiting for opponent...";
-
-                            if (p2Move) {
-                                resolveTurnOnline();
-                            }
-                        } else {
-                            // guest = P2 — wyślij pick hostowi i czekaj
-                            p2Move = { from: from, to: i };
-                            online.sendPick(from, i);
-                            currentPlayer = 1;
-                            document.getElementById('game-status').textContent = "Waiting for host...";
-                        }
-
-                        clearHighlights();
-                        activePieceIndex = null;
-                        return;
+                if (online) {
+                    const from = activePieceIndex;
+                    if (online.myPlayer === 1) {
+                        p1Move = { from: from, to: i };
+                    } else {
+                        p2Move = { from: from, to: i };
                     }
-                    return;
+                    online.sendPick(from, i);
+                    clearHighlights();
+                    activePieceIndex = null;
 
+                    if (online.isHost) {
+                        online.broadcastState({
+                            board: buildCensoredState(),
+                            currentTurn: 2,
+                            status: 'playing',
+                            winner: null
+                        });
+
+                        currentPlayer = 2;
+                        document.getElementById('game-status').textContent = "Waiting for opponent...";
+
+                        if (p2Move) {
+                            resolveTurnOnline();
+                        }
+                    } else {
+                        currentPlayer = 1;
+                        document.getElementById('game-status').textContent = "Waiting for host...";
+                    }
+
+                    clearHighlights();
+                    activePieceIndex = null;
+                } else {
                     if (currentPlayer === 1) {
                         p1Move = { from: activePieceIndex, to: i };
+                        activePieceIndex = null;
                         startPreMoveTurn(2);
                     } else {
                         p2Move = { from: activePieceIndex, to: i };
+                        activePieceIndex = null;
                         resolveTurn();
                     }
                 }
+            }
             }
         });
     });
@@ -1168,6 +1165,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function startPreMoveTurnOnline(player) {
         currentPlayer = player;
         activePieceIndex = null;
+        p1Move = null;
+        p2Move = null;
         clearHighlights();
 
         document.getElementById('game-status').textContent = `Player ${player}'s Turn`;
@@ -1224,12 +1223,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            let ended = false;
-            if (p1Data) ended = resolveSingleMove(p1Data);
-            if (!ended && p2Data) ended = resolveSingleMove(p2Data);
+            let endedBy = null;
+            if (p1Data) endedBy = resolveSingleMove(p1Data);
+            if (!endedBy && p2Data) endedBy = resolveSingleMove(p2Data);
 
-            if (ended) {
-                broadcastAndEnd(ended === true ? null : ended, '');
+            if (endedBy) {
+                broadcastAndEnd(endedBy, '');
             } else {
                 broadcastAndContinue();
             }

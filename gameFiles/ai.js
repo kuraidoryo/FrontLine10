@@ -1,7 +1,3 @@
-/* FrontLine10 - AI module
- * ISMCTS (Information Set Monte Carlo Tree Search) with UCB1.
- * Handles imperfect information by sampling opponent hidden values.
- */
 (function (global) {
     'use strict';
 
@@ -304,9 +300,6 @@
         return best;
     }
 
-    // ---------- ISMCTS root search ----------
-    // Every iteration: determinize, apply candidate move + one random opponent reply,
-    // then random playout. Stats updated via UCB1.
     function searchBestMove(board, aiPlayer, options) {
         options = options || {};
         const timeLimitMs = options.timeLimitMs || 1200;
